@@ -27,6 +27,7 @@ install-prerequisite:
 create-cluster:
 	./kind create cluster --name $(CLUSTER_NAME) --config=cluster/kind.yaml
 	./kubectl apply -f cluster/namespace.yaml
+	./kubectl apply -f cluster/resource-quota.yaml
 
 delete-cluster:
 	./kind delete cluster --name $(CLUSTER_NAME)
