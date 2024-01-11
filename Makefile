@@ -1,5 +1,6 @@
 KIND_VERSION 		:= v0.20.0
 KUBECTL_VERSION 	:= v1.29.0
+GRAFANA_VERSION		:= 10.2.3
 
 CLUSTER_NAME := cluster
 
@@ -32,9 +33,25 @@ create-cluster:
 delete-cluster:
 	./kind delete cluster --name $(CLUSTER_NAME)
 
+
+# ========
+# Monitors
+# ========
+install-grafana:
+	helm upgrade --install grafana bitnami/grafana -f monitor/grafana/values.yaml --namespace monitor
+
+delete-grafana:
+	helm uninstall grafana --namespace monitor
+
 # ==============
 # Image & Charts
 # ==============
+get-images:
+	docker pull bitnami/grafana:$(GRAFANA_VERSION)
+
+load-images:
+	./kind load docker-image bitnami/grafana:$(GRAFANA_VERSION) --name $(CLUSTER_NAME) 
+
 get-helm-charts:
 	helm repo add bitnami https://charts.bitnami.com/bitnami
 	helm repo update
