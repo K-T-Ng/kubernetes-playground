@@ -30,7 +30,11 @@ install-prerequisite:
 create-cluster:
 	# Create KinD Cluster
 	./kind create cluster --name $(CLUSTER_NAME) --config=cluster/kind.yaml
+
+	# Create namespaces
 	./kubectl apply -f cluster/namespace.yaml
+
+	# Create resource quota for namespaces
 	./kubectl apply -f cluster/resource-quota.yaml
 
 	# Create namespaces
