@@ -665,14 +665,14 @@ service:
 ingress:
   ## @param ingress.enabled Set to true to enable ingress record generation
   ##
-  enabled: false
+  enabled: true
   ## DEPRECATED: Use ingress.annotations instead of ingress.certManager
   ## certManager: false
   ##
 
   ## @param ingress.pathType Ingress Path type
   ##
-  pathType: ImplementationSpecific
+  pathType: Prefix
   ## @param ingress.apiVersion Override API Version (automatically detected if not set)
   ##
   apiVersion: ""
