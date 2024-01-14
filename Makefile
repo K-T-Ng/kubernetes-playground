@@ -1,10 +1,17 @@
-KIND_VERSION 		?= v0.20.0
-KUBECTL_VERSION 	?= v1.29.0
-GRAFANA_VERSION		?= 10.2.3
+KIND_VERSION 						?= v0.20.0
+KUBECTL_VERSION 					?= v1.29.0
+NGINX_INGRESS_CONTROLLER_VERSION	?= 1.9.5
+NGINX_VERSION 						?= 1.25.3
+GRAFANA_VERSION						?= 10.2.3
 
 CLUSTER_NAME ?= cluster
 
 GRAFANA_DNS ?= grafana.local
+
+all: install-prerequisite get-helm-charts create-stack
+clean: delete-cluster
+
+create-stack: create-cluster install-nginx-ingress-controller install-grafana
 
 # ============
 # Prerequisite	
@@ -53,12 +60,31 @@ create-cluster:
 delete-cluster:
 	./kind delete cluster --name $(CLUSTER_NAME)
 
+# =====
+# Infra
+# =====
+install-nginx-ingress-controller:
+	helm upgrade --install nginx-ingress-controller bitnami/nginx-ingress-controller \
+		-f cluster/nginx-ingress-controller/values.yaml \
+		--set image.tag=$(NGINX_INGRESS_CONTROLLER_VERSION) \
+		--set defaultBackend.image.tag=$(NGINX_VERSION) \
+		--namespace infra
+
+	./kubectl wait --namespace infra \
+		--for=condition=ready pod \
+		--selector=app.kubernetes.io/component=controller \
+		--timeout=90s
+
+delete-nginx-ingress-controller:
+	helm uninstall nginx-ingress-controller --namespace infra
+
 # ========
 # Monitors
 # ========
 install-grafana:
 	helm upgrade --install grafana bitnami/grafana \
 		-f monitor/grafana/values.yaml \
+		--set image.tag=$(GRAFANA_VERSION) \
 		--set ingress.hostname=$(GRAFANA_DNS) \
 		--namespace monitor
 
@@ -68,12 +94,6 @@ delete-grafana:
 # ==============
 # Image & Charts
 # ==============
-get-images:
-	docker pull bitnami/grafana:$(GRAFANA_VERSION)
-
-load-images:
-	./kind load docker-image bitnami/grafana:$(GRAFANA_VERSION) --name $(CLUSTER_NAME) 
-
 get-helm-charts:
 	helm repo add bitnami https://charts.bitnami.com/bitnami
 	helm repo update
