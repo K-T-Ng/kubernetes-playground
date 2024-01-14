@@ -6,10 +6,10 @@ nodes:
 - role: control-plane
   kubeadmConfigPatches:
   - |
-    kind: InitConfiguration
-    nodeRegistration:
-      kubeletExtraArgs:
-        node-labels: "ingress-ready=true"
+    kind: ClusterConfiguration
+    apiServer:
+      extraArgs:
+        service-node-port-range: "80-65535"
   extraPortMappings:
   - containerPort: 80
     hostPort: 80
