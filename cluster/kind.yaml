@@ -18,5 +18,6 @@ nodes:
     hostPort: 443
     protocol: TCP
 networking:
+  kubeProxyMode: "ipvs"
   podSubnet: "10.0.0.0/16"
   serviceSubnet: "10.1.0.0/16"
