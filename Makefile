@@ -3,10 +3,14 @@ KUBECTL_VERSION 					?= v1.29.0
 NGINX_INGRESS_CONTROLLER_VERSION	?= 1.9.5
 NGINX_VERSION 						?= 1.25.3
 GRAFANA_VERSION						?= 10.2.3
+PROMETHEUS_ALERT_MANAGER_VERSION 	?= 0.26.0
+PROMETHEUS_VERSION					?= 2.48.1
 
 CLUSTER_NAME ?= cluster
 
 GRAFANA_DNS ?= grafana.local
+PROMETHEUS_ALERT_MANAGER_DNS ?= alertmanager.prometheus.local
+PROMETHEUS_DNS ?= prometheus.local
 
 all: install-prerequisite get-helm-charts create-stack
 clean: delete-cluster
@@ -91,9 +95,31 @@ install-grafana:
 delete-grafana:
 	helm uninstall grafana --namespace monitor
 
+install-prometheus:
+	helm upgrade --install prometheus bitnami/prometheus \
+		-f monitor/prometheus/values.yaml \
+		--set alertmanager.image.tag=$(PROMETHEUS_ALERT_MANAGER_VERSION) \
+		--set alertmanager.ingress.hostname=$(PROMETHEUS_ALERT_MANAGER_DNS) \
+		--set server.image.tag=$(PROMETHEUS_VERSION) \
+		--set server.ingress.hostname=$(PROMETHEUS_DNS) \
+		--namespace monitor
+
+get-prometheus-manifest:
+	helm template prometheus bitnami/prometheus \
+		-f monitor/prometheus/values.yaml \
+		--set alertmanager.image.tag=$(PROMETHEUS_ALERT_MANAGER_VERSION) \
+		--set alertmanager.ingress.hostname=$(PROMETHEUS_ALERT_MANAGER_DNS) \
+		--set server.image.tag=$(PROMETHEUS_VERSION) \
+		--set server.ingress.hostname=$(PROMETHEUS_DNS) \
+		--namespace monitor >  manifest.yaml
+
+delete-prometheus:
+	helm uninstall prometheus --namespace monitor
+
 # ==============
 # Image & Charts
 # ==============
 get-helm-charts:
 	helm repo add bitnami https://charts.bitnami.com/bitnami
+	helm repo add projectcalico https://projectcalico.docs.tigera.io/charts
 	helm repo update
