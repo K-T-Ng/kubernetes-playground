@@ -47,3 +47,7 @@ server:
       - source_labels: [__meta_kubernetes_node_name]
         action: replace
         target_label: node
+    - job_name: kube-state-metrics
+      static_configs:
+        - targets:
+            - kube-state-metrics.monitor.svc.cluster.local:8080
