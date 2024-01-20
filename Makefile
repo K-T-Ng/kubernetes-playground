@@ -6,6 +6,7 @@ GRAFANA_VERSION						?= 10.2.3
 PROMETHEUS_ALERT_MANAGER_VERSION 	?= 0.26.0
 PROMETHEUS_VERSION					?= 2.48.1
 NODE_EXPORTER_VERSION				?= 1.7.0
+KUBE_STATE_METRICS_VERSION 			?= 2.10.1
 
 CLUSTER_NAME ?= cluster
 
@@ -16,7 +17,7 @@ PROMETHEUS_DNS ?= prometheus.local
 all: install-prerequisite get-helm-charts create-stack
 clean: delete-cluster
 
-create-monitor: install-grafana install-prometheus install-node-exporter
+create-monitor: install-grafana install-prometheus install-node-exporter intsall-kube-state-metrics
 create-stack: create-cluster install-nginx-ingress-controller create-monitor
 
 # ============
@@ -117,6 +118,15 @@ install-node-exporter:
 
 delete-node-exporter:
 	helm uninstall node-exporter --namespace monitor
+
+install-kube-state-metrics:
+	helm upgrade --install kube-state-metrics bitnami/kube-state-metrics \
+		-f monitor/kube-state-metrics/values.yaml \
+		--set image.tag=$(KUBE_STATE_METRICS_VERSION) \
+		--namespace monitor
+
+delete-kube-state-metrics:
+	helm uninstall kube-state-metrics --namespace monitor
 
 # ==============
 # Image & Charts
