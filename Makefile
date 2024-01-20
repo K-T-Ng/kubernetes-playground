@@ -5,6 +5,7 @@ NGINX_VERSION 						?= 1.25.3
 GRAFANA_VERSION						?= 10.2.3
 PROMETHEUS_ALERT_MANAGER_VERSION 	?= 0.26.0
 PROMETHEUS_VERSION					?= 2.48.1
+NODE_EXPORTER_VERSION				?= 1.7.0
 
 CLUSTER_NAME ?= cluster
 
@@ -15,7 +16,8 @@ PROMETHEUS_DNS ?= prometheus.local
 all: install-prerequisite get-helm-charts create-stack
 clean: delete-cluster
 
-create-stack: create-cluster install-nginx-ingress-controller install-grafana
+create-monitor: install-grafana install-prometheus install-node-exporter
+create-stack: create-cluster install-nginx-ingress-controller create-monitor
 
 # ============
 # Prerequisite	
@@ -104,17 +106,17 @@ install-prometheus:
 		--set server.ingress.hostname=$(PROMETHEUS_DNS) \
 		--namespace monitor
 
-get-prometheus-manifest:
-	helm template prometheus bitnami/prometheus \
-		-f monitor/prometheus/values.yaml \
-		--set alertmanager.image.tag=$(PROMETHEUS_ALERT_MANAGER_VERSION) \
-		--set alertmanager.ingress.hostname=$(PROMETHEUS_ALERT_MANAGER_DNS) \
-		--set server.image.tag=$(PROMETHEUS_VERSION) \
-		--set server.ingress.hostname=$(PROMETHEUS_DNS) \
-		--namespace monitor >  manifest.yaml
-
 delete-prometheus:
 	helm uninstall prometheus --namespace monitor
+
+install-node-exporter:
+	helm upgrade --install node-exporter bitnami/node-exporter \
+		-f monitor/node-exporter/values.yaml \
+		--set image.tag=$(NODE_EXPORTER_VERSION) \
+		--namespace monitor
+
+delete-node-exporter:
+	helm uninstall node-exporter --namespace monitor
 
 # ==============
 # Image & Charts
