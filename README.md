@@ -1,7 +1,7 @@
 # Kubernetes Playground
 A playground for getting familiar with Kubernetes. Plan to address the following components:
 - [x] Ingress
-- [ ] Deploy opensource microservices with Helm
+- [x] Deploy opensource microservices with Helm
 - [ ] Monitoring with Kubernetes (Metric, Log, Trace)
 - [ ] Taint & Tolerance
 - [ ] Deploy own application by writing own Helm Charts
@@ -32,11 +32,11 @@ sudo apt-get install make
 ```
 3. Install dependencies (`kind`, `kubectl` and `helm`)
 ```sh
-make install-prerequisite
+make install-prerequisite get-helm-charts
 ```
 4. Spin up cluster
 ```sh
-make create-cluster
+make create-cluster install-common install-monitor-backend
 ```
 
 ## Windows 10 Side
@@ -45,10 +45,7 @@ In order to make the `Ingress` works (e.g. If you want to access application ins
 The principle of this setting is to fake the local DNS, route FQDN to 127.0.0.1. Then the chain is something like the following:
 ```mermaid
 graph TD;
-   FQDN_FROM_BROWSER-->LOCAL_DNS;
-   LOCAL_DNS-->NGINX_INGRESS_CONTROLLER;
-   NGINX_INGRESS_CONTROLLER-->SERVICE;
-   SERVICE-->POD
+   FQDN_FROM_BROWSER-->LOCAL_DNS-->CONTAINER-->NGINX_INGRESS_CONTROLLER-->SERVICE-->POD;
 ```
 
 1. You may find the `hosts` setting file in `C:\Windows\System32\drivers\etc`.
@@ -56,6 +53,7 @@ graph TD;
 ```txt
 127.0.0.1 <FQDN>
 127.0.0.1 grafana.local # When browser see grafana.local, it will route to 127.0.0.1
+127.0.0.1 prometheus.local jaeger.local
 ```
 3. Save it into somewhere you can access (e.g. Desktop)
 4. Drag the file to `C:\Windows\System32\drivers\etc` and replace the existing `hosts` file.
