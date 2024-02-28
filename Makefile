@@ -43,13 +43,13 @@ install-prerequisite:
 # =======
 create-cluster:
 	# Create KinD Cluster
-	./kind create cluster --name $(CLUSTER_NAME) --config=cluster/kind.yaml
+	./kind create cluster --name $(CLUSTER_NAME) --config=config/kind/kind.yaml
 
 	# Create namespaces
-	./kubectl apply -f cluster/namespace.yaml
+	./kubectl apply -f config/kind/namespace.yaml
 
 	# Create resource quota for namespaces
-	./kubectl apply -f cluster/resource-quota.yaml
+	./kubectl apply -f config/kind/resource-quota.yaml
 
 	# Create namespaces
 	./kubectl apply -f cluster/namespace.yaml
@@ -67,71 +67,92 @@ create-cluster:
 delete-cluster:
 	./kind delete cluster --name $(CLUSTER_NAME)
 
-# =====
-# Infra
-# =====
-install-nginx-ingress-controller:
-	helm upgrade --install nginx-ingress-controller bitnami/nginx-ingress-controller \
-		-f cluster/nginx-ingress-controller/values.yaml \
-		--set image.tag=$(NGINX_INGRESS_CONTROLLER_VERSION) \
-		--set defaultBackend.image.tag=$(NGINX_VERSION) \
-		--namespace infra
+# =======
+# Common
+# =======
+install-common:
+	# Nginx ingress contoller
+	@$(call deploy_by_helm,nginx-ingress-controller,bitnami/nginx-ingress-controller,10.5.2,common,config/bitnami/nginx-ingress-controller/values.yaml)
+	@$(call check_pod_ready,app.kubernetes.io/component=controller,common,90s)
 
-	./kubectl wait --namespace infra \
-		--for=condition=ready pod \
-		--selector=app.kubernetes.io/component=controller \
-		--timeout=90s
+delete-common:
+	# Nginx ingress contoller
+	@$(call delete_by_helm,nginx-ingress-controller,common)
 
-delete-nginx-ingress-controller:
-	helm uninstall nginx-ingress-controller --namespace infra
+# =======
+# Monitor
+# =======
+install-monitor-backend:
+	# Grafana
+	@$(call deploy_by_helm,grafana,bitnami/grafana,9.10.2,monitor,config/bitnami/grafana/values.yaml)
 
-# ========
-# Monitors
-# ========
-install-grafana:
-	helm upgrade --install grafana bitnami/grafana \
-		-f monitor/grafana/values.yaml \
-		--set image.tag=$(GRAFANA_VERSION) \
-		--set ingress.hostname=$(GRAFANA_DNS) \
-		--namespace monitor
+	# Prometheus
+	@$(call deploy_by_helm,prometheus,bitnami/prometheus,0.11.4,monitor,config/bitnami/prometheus/values.yaml)
 
-delete-grafana:
-	helm uninstall grafana --namespace monitor
+	# ElasticSearch
+	@$(call deploy_by_helm,elasticsearch,bitnami/elasticsearch,19.19.3,monitor,config/bitnami/elasticsearch/values.yaml)
 
-install-prometheus:
-	helm upgrade --install prometheus bitnami/prometheus \
-		-f monitor/prometheus/values.yaml \
-		--set alertmanager.image.tag=$(PROMETHEUS_ALERT_MANAGER_VERSION) \
-		--set alertmanager.ingress.hostname=$(PROMETHEUS_ALERT_MANAGER_DNS) \
-		--set server.image.tag=$(PROMETHEUS_VERSION) \
-		--set server.ingress.hostname=$(PROMETHEUS_DNS) \
-		--namespace monitor
+	# Jaeger
+	@$(call deploy_by_helm,jaeger,jaegertracing/jaeger,1.0.2,monitor,config/jaegertracing/jaeger/values.yaml)
 
-delete-prometheus:
-	helm uninstall prometheus --namespace monitor
+	# OpenTelemetry collector
+	@$(call deploy_by_helm,opentelemetry-collector,open-telemetry/opentelemetry-collector,0.82.0,monitor,config/open-telemetry/opentelemetry-collector/values.yaml)
 
-install-node-exporter:
-	helm upgrade --install node-exporter bitnami/node-exporter \
-		-f monitor/node-exporter/values.yaml \
-		--set image.tag=$(NODE_EXPORTER_VERSION) \
-		--namespace monitor
+delete-monitor-backend:
+	# Grafana
+	@$(call delete_by_helm,grafana,monitor)
 
-delete-node-exporter:
-	helm uninstall node-exporter --namespace monitor
+	# Prometheus
+	@$(call delete_by_helm,prometheus,monitor)
 
-install-kube-state-metrics:
-	helm upgrade --install kube-state-metrics bitnami/kube-state-metrics \
-		-f monitor/kube-state-metrics/values.yaml \
-		--set image.tag=$(KUBE_STATE_METRICS_VERSION) \
-		--namespace monitor
+	# ElasticSearch
+	@$(call delete_by_helm,elasticsearch,monitor)
 
-delete-kube-state-metrics:
-	helm uninstall kube-state-metrics --namespace monitor
+	# Jaeger
+	@$(call delete_by_helm,jaeger,monitor)
+
+	# OpenTelemetry Collector
+	@$(call delete_by_helm,opentelemetry-collector,monitor)
 
 # ==============
 # Image & Charts
 # ==============
 get-helm-charts:
 	helm repo add bitnami https://charts.bitnami.com/bitnami
-	helm repo add projectcalico https://projectcalico.docs.tigera.io/charts
+	helm repo add jaegertracing https://jaegertracing.github.io/helm-charts
+	helm repo add open-telemetry https://open-telemetry.github.io/opentelemetry-helm-charts
 	helm repo update
+
+# ========
+# Misc
+# ========
+define deploy_by_helm
+	$(eval $@_NAME = $(1))
+	$(eval $@_CHART = $(2))
+	$(eval $@_VERSION = $(3))
+	$(eval $@_NAMESPACE = $(4))
+	$(eval $@_VALUE = $(5))
+
+	helm upgrade --install ${$@_NAME} ${$@_CHART} \
+		-f ${$@_VALUE} \
+		--version ${$@_VERSION} \
+		--namespace ${$@_NAMESPACE}
+endef
+
+define delete_by_helm
+	$(eval $@_NAME = $(1))
+	$(eval $@_NAMESPACE = $(2))
+
+	helm uninstall ${$@_NAME} --namespace ${$@_NAMESPACE}
+endef
+
+define check_pod_ready
+	$(eval $@_SELECTOR = $(1))
+	$(eval $@_NAMESPACE = $(2))
+	$(eval $@_TIMEOUT = $(3))
+
+	./kubectl wait --namespace ${$@_NAMESPACE} \
+		--for=condition=ready pod \
+		--selector=${$@_SELECTOR} \
+		--timeout=${$@_TIMEOUT}
+endef
