@@ -94,6 +94,8 @@ config:
         enabled: true
         num_consumers: 20
         queue_size: 1000
+    prometheusremotewrite:
+      endpoint: "http://prometheus-server"
     otlp:
       endpoint: jaeger-collector:4317
       tls:
@@ -133,6 +135,7 @@ config:
       metrics:
         exporters:
           - debug
+          - prometheusremotewrite
         processors:
           - batch
         receivers:
