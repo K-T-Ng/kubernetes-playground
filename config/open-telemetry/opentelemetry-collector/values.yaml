@@ -420,9 +420,15 @@ service:
   # internalTrafficPolicy: Cluster
 
 ingress:
-  enabled: false
+  enabled: true
   # annotations: {}
-  # ingressClassName: nginx
+  ingressClassName: nginx
+  hosts:
+    - host: otel-collector.local
+      paths:
+        - path: /
+          pathType: Prefix
+          port: 4318
   # hosts:
   #   - host: collector.example.com
   #     paths:
