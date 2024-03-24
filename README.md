@@ -65,7 +65,7 @@ make delete-cluster
 ```
 
 # Overall Architecture
-![./docs/kubernetes-playground.drawio.png]
+![Architecture](./docs/kubernetes-playground.drawio.png)
 
 # Reference
 - [KinD Documentation](https://kind.sigs.k8s.io/)
