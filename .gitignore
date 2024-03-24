@@ -1,2 +1,6 @@
+# Ignore kind and kubectl executable downloaded by `make install-prerequisite`
 kind
 kubectl
+
+# But do not ignore the configuration folder in `config/kind/`
+!kind/
