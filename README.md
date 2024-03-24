@@ -64,6 +64,9 @@ Delete the KinD cluster by issuing the following command:
 make delete-cluster
 ```
 
+# Overall Architecture
+![./docs/kubernetes-playground.drawio.png]
+
 # Reference
 - [KinD Documentation](https://kind.sigs.k8s.io/)
 - [KinD Nginx Ingress Controller Setup](https://kind.sigs.k8s.io/docs/user/ingress/#ingress-nginx)

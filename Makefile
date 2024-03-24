@@ -39,19 +39,6 @@ create-cluster:
 	# Create resource quota for namespaces
 	./kubectl apply -f config/kind/resource-quota.yaml
 
-	# Create namespaces
-	./kubectl apply -f cluster/namespace.yaml
-
-	# Create resource quota for namespaces
-	./kubectl apply -f cluster/resource-quota.yaml
-
-	# Create nginx ingress controller
-	./kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
-	kubectl wait --namespace ingress-nginx \
-		--for=condition=ready pod \
-		--selector=app.kubernetes.io/component=controller \
-		--timeout=180s
-
 delete-cluster:
 	./kind delete cluster --name $(CLUSTER_NAME)
 
