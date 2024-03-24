@@ -1,18 +1,6 @@
-KIND_VERSION 						?= v0.20.0
-KUBECTL_VERSION 					?= v1.29.0
-NGINX_INGRESS_CONTROLLER_VERSION	?= 1.9.5
-NGINX_VERSION 						?= 1.25.3
-GRAFANA_VERSION						?= 10.2.3
-PROMETHEUS_ALERT_MANAGER_VERSION 	?= 0.26.0
-PROMETHEUS_VERSION					?= 2.48.1
-NODE_EXPORTER_VERSION				?= 1.7.0
-KUBE_STATE_METRICS_VERSION 			?= 2.10.1
-
-CLUSTER_NAME ?= cluster
-
-GRAFANA_DNS ?= grafana.local
-PROMETHEUS_ALERT_MANAGER_DNS ?= alertmanager.prometheus.local
-PROMETHEUS_DNS ?= prometheus.local
+CLUSTER_NAME 	?= cluster
+KIND_VERSION 	?= v0.20.0
+KUBECTL_VERSION ?= v1.29.0
 
 all: install-prerequisite get-helm-charts create-stack
 clean: delete-cluster
@@ -73,6 +61,9 @@ delete-cluster:
 install-common:
 	# Nginx ingress contoller
 	@$(call deploy_by_helm,nginx-ingress-controller,bitnami/nginx-ingress-controller,10.5.2,common,config/bitnami/nginx-ingress-controller/values.yaml)
+
+check-common:
+	# Nginx ingress contoller
 	@$(call check_pod_ready,app.kubernetes.io/component=controller,common,90s)
 
 delete-common:
@@ -97,6 +88,22 @@ install-monitor-backend:
 
 	# OpenTelemetry collector
 	@$(call deploy_by_helm,opentelemetry-collector,open-telemetry/opentelemetry-collector,0.82.0,monitor,config/open-telemetry/opentelemetry-collector/values.yaml)
+
+check-monitor-backend:
+	# ElasticSearch
+	@$(call check_pod_ready,app.kubernetes.io/name=elasticsearch,monitor,300s)
+
+	# Grafana
+	@$(call check_pod_ready,app.kubernetes.io/name=grafana,monitor,300s)
+
+	# Prometheus
+	@$(call check_pod_ready,app.kubernetes.io/name=prometheus,monitor,300s)
+
+	# Jaeger
+	@$(call check_pod_ready,app.kubernetes.io/name=jaeger,monitor,300s)
+
+	# OpenTelemetry collector
+	@$(call check_pod_ready,app.kubernetes.io/name=opentelemetry-collector,monitor,300s)
 
 delete-monitor-backend:
 	# Grafana
